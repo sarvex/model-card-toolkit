@@ -383,5 +383,5 @@ def stringify_slice_key(slice_key: SliceKeyType) -> Tuple[Text, Text]:
 
   # To use u'{}' instead of '{}' here to avoid encoding a unicode character with
   # ascii codec.
-  return (separator.join([u'{}'.format(key) for key in keys]),
-          separator.join([u'{}'.format(value) for value in values]))
+  return separator.join([f'{key}' for key in keys
+                         ]), separator.join([f'{value}' for value in values])

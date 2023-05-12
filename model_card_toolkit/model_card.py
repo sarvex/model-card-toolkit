@@ -479,14 +479,14 @@ class ModelCard(BaseModelCardField):
     """
 
     def _populate_from_json(json_dict: Dict[Text, Any],
-                            field: BaseModelCardField) -> BaseModelCardField:
+                              field: BaseModelCardField) -> BaseModelCardField:
       for subfield_key in json_dict:
         if subfield_key.startswith(_SCHEMA_VERSION_STRING):
           continue
         elif not hasattr(field, subfield_key):
           raise ValueError(
-              "BaseModelCardField %s has no such field named '%s.'" %
-              (field, subfield_key))
+              f"BaseModelCardField {field} has no such field named '{subfield_key}.'"
+          )
         elif isinstance(json_dict[subfield_key], dict):
           subfield_value = _populate_from_json(
               json_dict[subfield_key], getattr(field, subfield_key))

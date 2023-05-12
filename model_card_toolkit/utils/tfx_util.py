@@ -65,15 +65,15 @@ def _get_tfx_pipeline_types(
   expected_artifact_types = {
       _TFX_DATASET_TYPE, _TFX_STATS_TYPE, _TFX_MODEL_TYPE, _TFX_METRICS_TYPE
   }
-  missing_types = expected_artifact_types.difference(artifact_types.keys())
-  if missing_types:
+  if missing_types := expected_artifact_types.difference(
+      artifact_types.keys()):
     raise ValueError(
         f'Given `store` is invalid: missing ArtifactTypes: {missing_types}.'
     )
   execution_types = {etype.name: etype for etype in store.get_execution_types()}
   expected_execution_types = {_TFX_TRAINER_TYPE}
-  missing_types = expected_execution_types.difference(execution_types.keys())
-  if missing_types:
+  if missing_types := expected_execution_types.difference(
+      execution_types.keys()):
     raise ValueError(
         f'Given `store` is invalid: missing ExecutionTypes: {missing_types}.')
   return PipelineTypes(
@@ -147,14 +147,16 @@ def _get_one_hop_artifacts(
                                     metadata_store_pb2.Event.DECLARED_INPUT)
     traverse_events['artifact'] = (metadata_store_pb2.Event.OUTPUT,
                                    metadata_store_pb2.Event.DECLARED_OUTPUT)
-  executions_ids = set(
+  executions_ids = {
       event.execution_id
       for event in store.get_events_by_artifact_ids(artifact_ids)
-      if event.type in traverse_events['execution'])
-  artifacts_ids = set(
+      if event.type in traverse_events['execution']
+  }
+  artifacts_ids = {
       event.artifact_id
       for event in store.get_events_by_execution_ids(executions_ids)
-      if event.type in traverse_events['artifact'])
+      if event.type in traverse_events['artifact']
+  }
   return [
       artifact for artifact in store.get_artifacts_by_id(artifacts_ids)
       if not filter_type or artifact.type_id == filter_type.id
@@ -185,10 +187,11 @@ def _get_one_hop_executions(
   elif direction == _Direction.SUCCESSOR:
     traverse_event = (metadata_store_pb2.Event.INPUT,
                       metadata_store_pb2.Event.DECLARED_INPUT)
-  executions_ids = set(
+  executions_ids = {
       event.execution_id
       for event in store.get_events_by_artifact_ids(artifact_ids)
-      if event.type in traverse_event)
+      if event.type in traverse_event
+  }
   return [
       execution for execution in store.get_executions_by_id(executions_ids)
       if not filter_type or execution.type_id == filter_type.id
@@ -325,9 +328,9 @@ def generate_model_card_for_model(
   _validate_model_id(store, pipeline_types.model_type, model_id)
   model_card = model_card_module.ModelCard()
   model_details = model_card.model_details
-  trainers = _get_one_hop_executions(store, [model_id], _Direction.ANCESTOR,
-                                     pipeline_types.trainer_type)
-  if trainers:
+  if trainers := _get_one_hop_executions(store, [model_id],
+                                         _Direction.ANCESTOR,
+                                         pipeline_types.trainer_type):
     model_details.name = _property_value(trainers[-1], 'module_file')
     model_details.version.name = _property_value(trainers[0], 'checksum_md5')
     model_details.references = [
@@ -352,8 +355,7 @@ def read_stats_protos(
   stats_protos = []
   for filename in tf.io.gfile.listdir(stats_artifact_uri):
     if tf.io.gfile.isdir(os.path.join(stats_artifact_uri, filename)):
-      stats_proto = read_stats_proto(stats_artifact_uri, filename)
-      if stats_proto:
+      if stats_proto := read_stats_proto(stats_artifact_uri, filename):
         logging.info('Reading stats artifact from %s', filename)
         stats_protos.append(stats_proto)
   return stats_protos
@@ -431,8 +433,7 @@ def annotate_eval_result_metrics(model_card: model_card_module.ModelCard,
     # Parse the slice name
     if not isinstance(slice_repr, tuple):
       raise ValueError(
-          'Expected EvalResult slices to be tuples; found %s' %
-          type(slice_repr))
+          f'Expected EvalResult slices to be tuples; found {type(slice_repr)}')
     slice_name = '_X_'.join(f'{a}_{b}' for a, b in slice_repr)
     for metric_name, metric_value in metrics_for_slice.items():
       # Parse the metric value
@@ -441,8 +442,9 @@ def annotate_eval_result_metrics(model_card: model_card_module.ModelCard,
       elif 'boundedValue' in metric_value:
         parsed_value = metric_value['boundedValue']['value']
       else:
-        raise ValueError('Expected doubleValue or boundedValue; found %s' %
-                         metric_value.keys())
+        raise ValueError(
+            f'Expected doubleValue or boundedValue; found {metric_value.keys()}'
+        )
       # Create the PerformanceMetric and append to the ModelCard
       metric = model_card_module.PerformanceMetric(
           type=metric_name, value=str(parsed_value), slice=slice_name)

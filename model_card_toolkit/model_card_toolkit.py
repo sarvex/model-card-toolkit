@@ -154,9 +154,9 @@ class ModelCardToolkit():
             '%d artifacts are found with the `model_uri`="%s". '
             'The last one is used.', len(models), model_uri)
       self._artifact_with_model_uri = models[-1]
-    elif mlmd_store and not model_uri:
+    elif mlmd_store:
       raise ValueError('If `mlmd_store` is set, `model_uri` should be set.')
-    elif model_uri and not mlmd_store:
+    elif model_uri:
       logging.info('`model_uri` ignored when `mlmd_store` is not set.')
 
   def _jinja_loader(self, template_dir: Text):
@@ -205,18 +205,17 @@ class ModelCardToolkit():
       model_card = ModelCard()
 
     # Generate graphics for TFMA's `EvalResult`s
-    if self._source:
-      if self._source.eval_result_paths:
-        for eval_result_path in self._source.eval_result_paths:
-          eval_result = tfma.load_eval_result(
-              output_path=eval_result_path,
-              output_file_format=self._source.eval_result_file_format)
-          if eval_result:
-            logging.info('EvalResult found at path %s', eval_result_path)
-            tfx_util.annotate_eval_result_metrics(model_card, eval_result)
-            graphics.annotate_eval_result_plots(model_card, eval_result)
-          else:
-            logging.info('EvalResult not found at path %s', eval_result_path)
+    if self._source and self._source.eval_result_paths:
+      for eval_result_path in self._source.eval_result_paths:
+        if eval_result := tfma.load_eval_result(
+            output_path=eval_result_path,
+            output_file_format=self._source.eval_result_file_format,
+        ):
+          logging.info('EvalResult found at path %s', eval_result_path)
+          tfx_util.annotate_eval_result_metrics(model_card, eval_result)
+          graphics.annotate_eval_result_plots(model_card, eval_result)
+        else:
+          logging.info('EvalResult not found at path %s', eval_result_path)
     if self._store:
       metrics_artifacts = tfx_util.get_metrics_artifacts_for_model(
           self._store, self._artifact_with_model_uri.id)
@@ -227,12 +226,11 @@ class ModelCardToolkit():
           graphics.annotate_eval_result_plots(model_card, eval_result)
 
     # Generate graphics for TFDV's `DatasetFeatureStatisticsList`s
-    if self._source:
-      if self._source.dataset_statistics_paths:
-        for dataset_statistics_path in self._source.dataset_statistics_paths:
-          data_stats = tfx_util.read_stats_protos(dataset_statistics_path)
-          graphics.annotate_dataset_feature_statistics_plots(
-              model_card, data_stats)
+    if self._source and self._source.dataset_statistics_paths:
+      for dataset_statistics_path in self._source.dataset_statistics_paths:
+        data_stats = tfx_util.read_stats_protos(dataset_statistics_path)
+        graphics.annotate_dataset_feature_statistics_plots(
+            model_card, data_stats)
     if self._store:
       stats_artifacts = tfx_util.get_stats_artifacts_for_model(
           self._store, self._artifact_with_model_uri.id)

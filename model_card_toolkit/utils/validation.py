@@ -76,14 +76,12 @@ def _find_json_schema(schema_version: Optional[Text] = None) -> Dict[Text, Any]:
     schema_version = _LATEST_SCHEMA_VERSION
   if schema_version not in _SCHEMA_VERSIONS:
     raise ValueError(
-        'Cannot find schema version that matches the version of the given '
-        'model card. Found Versions: {}. Given Version: {}'.format(
-            ', '.join(_SCHEMA_VERSIONS), schema_version))
+        f"Cannot find schema version that matches the version of the given model card. Found Versions: {', '.join(_SCHEMA_VERSIONS)}. Given Version: {schema_version}"
+    )
 
-  schema_file = os.path.join('schema', 'v' + schema_version, _SCHEMA_FILE_NAME)
+  schema_file = os.path.join('schema', f'v{schema_version}', _SCHEMA_FILE_NAME)
   json_file = pkgutil.get_data('model_card_toolkit', schema_file)
-  schema = json.loads(json_file)
-  return schema
+  return json.loads(json_file)
 
 
 def get_latest_schema_version() -> Text:
